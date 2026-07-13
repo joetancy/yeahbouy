@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+worklog.db
+build/
+dist/
+*.spec
+.pyinstaller/
+.DS_Store
