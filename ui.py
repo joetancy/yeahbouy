@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sys
-from datetime import date
+from datetime import date, timedelta
 
 from PySide6.QtCore import QPoint, Qt, Signal, QDate, QRectF
 from PySide6.QtGui import (
@@ -67,6 +67,11 @@ def modern_stylesheet() -> str:
         "border: none; border-radius: 16px; padding: 0; min-width: 32px; min-height: 32px; "
         "font-size: 28px; font-weight: 400; }"
         f"QPushButton#calendarNavButton:hover {{ background: {field}; }}"
+        f"QPushButton#dayNavButton {{ background: transparent; color: #3478f6; "
+        "border: none; border-radius: 11px; padding: 4px 10px; min-width: 28px; min-height: 28px; "
+        "font-size: 22px; font-weight: 400; }"
+        f"QPushButton#dayNavButton:hover {{ background: {field}; }}"
+        f"QPushButton#dayNavButton:disabled {{ color: {muted}; }}"
         f"QPushButton#secondaryButton {{ background: {field}; color: {text}; "
         f"border: 1px solid {border}; }}"
         f"QPushButton#secondaryButton:hover {{ background: {border}; }}"
@@ -192,6 +197,7 @@ class TodayWindow(RoundedDialog):
     def __init__(self, db: Database, parent=None) -> None:
         super().__init__(parent)
         self.db = db
+        self.selected_date = date.today()
         self.setWindowTitle("YeahBouy")
         self.setMinimumSize(390, 480)
         self.setStyleSheet(modern_stylesheet())
@@ -208,6 +214,10 @@ class TodayWindow(RoundedDialog):
         heading.setFont(QFont("", 16, QFont.Bold))
         layout.addWidget(heading)
 
+        self.today_label = QLabel()
+        self.today_label.setObjectName("secondaryLabel")
+        layout.addWidget(self.today_label)
+
         self.activity = QLineEdit()
         self.activity.setPlaceholderText("Add activity")
         self.activity.returnPressed.connect(self.add_activity)
@@ -217,9 +227,23 @@ class TodayWindow(RoundedDialog):
         add_button.clicked.connect(self.add_activity)
         layout.addWidget(add_button)
 
-        self.date_label = QLabel()
-        self.date_label.setObjectName("secondaryLabel")
-        layout.addWidget(self.date_label)
+        day_navigation = QHBoxLayout()
+        day_navigation.setContentsMargins(0, 0, 0, 0)
+        previous_day = QPushButton("‹")
+        previous_day.setObjectName("dayNavButton")
+        previous_day.setToolTip("Previous day")
+        previous_day.clicked.connect(self.show_previous_day)
+        self.selected_date_label = QLabel()
+        self.selected_date_label.setAlignment(Qt.AlignCenter)
+        self.selected_date_label.setFont(QFont("", 12, QFont.DemiBold))
+        self.next_day = QPushButton("›")
+        self.next_day.setObjectName("dayNavButton")
+        self.next_day.setToolTip("Next day")
+        self.next_day.clicked.connect(self.show_next_day)
+        day_navigation.addWidget(previous_day)
+        day_navigation.addWidget(self.selected_date_label, 1)
+        day_navigation.addWidget(self.next_day)
+        layout.addLayout(day_navigation)
 
         self.list = QListWidget()
         self.list.setSpacing(2)
@@ -245,17 +269,34 @@ class TodayWindow(RoundedDialog):
             return
         self.db.add_activity(activity)
         self.activity.clear()
+        self.selected_date = date.today()
         self.refresh()
 
     def refresh(self) -> None:
-        logs = self.db.today_activities()
-        self.date_label.setText(f"Today · {len(logs)} log{'s' if len(logs) != 1 else ''}")
+        today = date.today()
+        if self.selected_date > today:
+            self.selected_date = today
+        self.today_label.setText(f"Today · {today:%A, %B %-d, %Y}")
+        logs = self.db.activities_for_date(self.selected_date)
+        self.selected_date_label.setText(
+            f"{self.selected_date:%a, %b %-d} · {len(logs)} log{'s' if len(logs) != 1 else ''}"
+        )
+        self.next_day.setEnabled(self.selected_date < today)
         self.list.clear()
         for log in logs:
             item = QListWidgetItem(self.list)
             row = ActivityRow(f"{log.entered_at:%H:%M}", log.activity)
             item.setSizeHint(row.sizeHint())
             self.list.setItemWidget(item, row)
+
+    def show_previous_day(self) -> None:
+        self.selected_date -= timedelta(days=1)
+        self.refresh()
+
+    def show_next_day(self) -> None:
+        if self.selected_date < date.today():
+            self.selected_date += timedelta(days=1)
+            self.refresh()
 
 
 class HistoryWindow(QDialog):
