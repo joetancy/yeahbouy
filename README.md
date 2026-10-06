@@ -11,6 +11,7 @@ a simple, portable daily log.
 - Lets you use the panel's **Back** and **Forward** buttons to browse earlier daily logs without opening the calendar. Forward stops at today.
 - Provides a calendar-based History window for browsing a month at a time and opening a selected day's Markdown file.
 - Shows activity markers on days with logs and a clear empty state when a day has no entries.
+- Lets you choose a Markdown folder from the folder button in the panel footer; the choice is remembered.
 - Stores every day as readable Markdown; no database service is required.
 
 ## Storage
@@ -24,11 +25,16 @@ Linux:   $XDG_DATA_HOME/YeahBouy/logs/YYYY-MM-DD.md
 ```
 
 When `XDG_DATA_HOME` is unset on Linux, logs use `~/.local/share/YeahBouy/logs`.
+Use the folder button at the bottom of the panel to pick another destination;
+YeahBouy remembers it for future launches.
 
 Set `YEAHBOUY_LOGS_DIR` to use a different log directory (useful for backups or
 testing). Existing Markdown files are read as-is; YeahBouy creates a daily file
 only when its first activity is recorded. Markdown heading-like lines inside an
 activity are escaped so they remain part of that entry.
+
+Choosing another folder changes where future logs are saved; existing files are
+left in their original folder and are not moved.
 
 YeahBouy creates a day's file only after its first activity is recorded. Reading
 or browsing a day never creates a new file.
@@ -44,7 +50,7 @@ Review release checklist
 
 ## Run from source
 
-Requirements: macOS and Python 3.10 or newer.
+Requirements: Python 3.10 or newer and a desktop environment with a system tray.
 
 ```bash
 python3 -m venv .venv
@@ -65,7 +71,7 @@ With the virtual environment activated:
 
 ```bash
 pip install pyinstaller
-pyinstaller --noconfirm --windowed --name YeahBouy --icon assets/checkpoint.icns --add-data 'assets/checkpoint-menubar.svg:assets' main.py
+pyinstaller --noconfirm --windowed --name YeahBouy --icon assets/checkpoint.icns --codesign-identity - --osx-entitlements-file assets/entitlements.plist --add-data 'assets/checkpoint-menubar.svg:assets' main.py
 ```
 
 The rebuilt application is placed at `dist/YeahBouy.app`. The `--noconfirm`
@@ -77,7 +83,11 @@ The **Package app** workflow runs tests and builds downloadable ZIP artifacts
 for Apple Silicon macOS, Intel macOS, Windows, and Linux. Run it manually from
 the Actions tab, or push a date tag (`YYYY-MM-DD`) to build all four and publish
 a GitHub Release using `CHANGELOG.md` as its notes, with the platform ZIPs
-attached. Choose the macOS build matching your Mac's chip in **About This Mac**.
+attached. Add `-N` to the tag for another release on the same date. Choose the
+macOS build matching your Mac's chip in **About This Mac**.
+
+The macOS build is ad-hoc signed, not notarized. On first launch, Control-click
+`YeahBouy.app` and choose **Open** if macOS asks for confirmation.
 
 ```bash
 git tag "$(date +%F)"
