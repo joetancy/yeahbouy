@@ -59,20 +59,23 @@ jobs:
           main.py
 
       - name: Archive app
+        env:
+          ARCHIVE_NAME: ${{ matrix.artifact }}
         run: |
           python - <<'PY'
+          import os
           import shutil
           import sys
           from pathlib import Path
 
           source = Path("dist/YeahBouy.app" if sys.platform == "darwin" else "dist/YeahBouy")
-          shutil.make_archive("YeahBouy", "zip", root_dir=source.parent, base_dir=source.name)
+          shutil.make_archive(os.environ["ARCHIVE_NAME"], "zip", root_dir=source.parent, base_dir=source.name)
           PY
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: YeahBouy.zip
+          path: ${{ matrix.artifact }}.zip
           if-no-files-found: error
 
   release:
@@ -90,4 +93,8 @@ jobs:
 
       - env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "$GITHUB_REF_NAME" release-assets/*.zip --title "$GITHUB_REF_NAME" --notes-file CHANGELOG.md
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file CHANGELOG.md
+          gh release edit "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file CHANGELOG.md
+          gh release delete-asset "$GITHUB_REF_NAME" YeahBouy.zip --yes || true
+          gh release upload "$GITHUB_REF_NAME" release-assets/*.zip --clobber
