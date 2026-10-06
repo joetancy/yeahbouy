@@ -18,6 +18,7 @@ jobs:
             artifact: YeahBouy-macos
             add-data: assets/checkpoint-menubar.svg:assets
             icon: --icon assets/checkpoint.icns
+            signing: --codesign-identity -
           - os: windows-latest
             artifact: YeahBouy-windows
             add-data: assets/checkpoint-menubar.svg;assets
@@ -55,8 +56,13 @@ jobs:
         run: >-
           pyinstaller --noconfirm --windowed --name YeahBouy
           ${{ matrix.icon }}
+          ${{ matrix.signing }}
           --add-data "${{ matrix.add-data }}"
           main.py
+
+      - name: Verify macOS app signature
+        if: runner.os == 'macOS'
+        run: codesign --verify --deep --strict --verbose=2 dist/YeahBouy.app
 
       - name: Archive app
         env:
@@ -65,11 +71,16 @@ jobs:
           python - <<'PY'
           import os
           import shutil
+          import subprocess
           import sys
           from pathlib import Path
 
           source = Path("dist/YeahBouy.app" if sys.platform == "darwin" else "dist/YeahBouy")
-          shutil.make_archive(os.environ["ARCHIVE_NAME"], "zip", root_dir=source.parent, base_dir=source.name)
+          archive = f"{os.environ['ARCHIVE_NAME']}.zip"
+          if sys.platform == "darwin":
+              subprocess.run(["ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", str(source), archive], check=True)
+          else:
+              shutil.make_archive(os.environ["ARCHIVE_NAME"], "zip", root_dir=source.parent, base_dir=source.name)
           PY
 
       - uses: actions/upload-artifact@v4
