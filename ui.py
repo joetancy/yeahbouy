@@ -251,6 +251,10 @@ class TodayWindow(RoundedDialog):
         self.list.setUniformItemSizes(False)
         self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         layout.addWidget(self.list)
+        self.empty_state = QLabel("No activities for this day yet.")
+        self.empty_state.setObjectName("secondaryLabel")
+        self.empty_state.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.empty_state)
 
         actions = QHBoxLayout()
         history = QPushButton("History")
@@ -267,7 +271,11 @@ class TodayWindow(RoundedDialog):
         activity = self.activity.text().strip()
         if not activity:
             return
-        self.db.add_activity(activity)
+        try:
+            self.db.add_activity(activity)
+        except OSError as error:
+            QMessageBox.critical(self, "Could not save activity", str(error))
+            return
         self.activity.clear()
         self.selected_date = date.today()
         self.refresh()
@@ -283,6 +291,8 @@ class TodayWindow(RoundedDialog):
         )
         self.next_day.setEnabled(self.selected_date < today)
         self.list.clear()
+        self.empty_state.setVisible(not logs)
+        self.list.setVisible(bool(logs))
         for log in logs:
             item = QListWidgetItem(self.list)
             row = ActivityRow(f"{log.entered_at:%H:%M}", log.activity)
@@ -341,6 +351,10 @@ class HistoryWindow(QDialog):
         self.list.setUniformItemSizes(False)
         self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         layout.addWidget(self.list)
+        self.empty_state = QLabel("No activities recorded for this day.")
+        self.empty_state.setObjectName("secondaryLabel")
+        self.empty_state.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.empty_state)
 
         open_markdown = QPushButton("Open selected day’s Markdown")
         open_markdown.clicked.connect(self.open_markdown)
@@ -362,6 +376,8 @@ class HistoryWindow(QDialog):
             f"{selected:%A, %B %-d, %Y} · {len(logs)} log{'s' if len(logs) != 1 else ''}"
         )
         self.list.clear()
+        self.empty_state.setVisible(not logs)
+        self.list.setVisible(bool(logs))
         for log in logs:
             item = QListWidgetItem(self.list)
             row = ActivityRow(f"{log.entered_at:%H:%M}", log.activity)
@@ -375,7 +391,8 @@ class HistoryWindow(QDialog):
         if not path.exists():
             QMessageBox.information(self, "No Markdown log", "No Markdown log exists for the selected day.")
             return
-        QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
+        if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(path))):
+            QMessageBox.warning(self, "Could not open Markdown", f"Could not open:\n{path}")
 
 
 class WorkLogApp:

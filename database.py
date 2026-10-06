@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -22,12 +23,18 @@ class Database:
 
     ENTRY_PATTERN = re.compile(
         r"^## (?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\n"
-        r"(?P<activity>.*?)(?=^## |\Z)",
+        r"(?P<activity>.*?)(?=^## \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$|\Z)",
         re.MULTILINE | re.DOTALL,
     )
 
     def __init__(self, path: str | Path | None = None) -> None:
-        default = Path.home() / "Library/Application Support/YeahBouy/logs"
+        if sys.platform == "darwin":
+            data_dir = Path.home() / "Library/Application Support"
+        elif os.name == "nt":
+            data_dir = Path(os.environ.get("APPDATA", Path.home() / "AppData/Roaming"))
+        else:
+            data_dir = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share"))
+        default = data_dir / "YeahBouy/logs"
         self.logs_dir = Path(path) if path else Path(os.environ.get("YEAHBOUY_LOGS_DIR", default))
 
     def _day_path(self, day) -> Path:
@@ -44,6 +51,7 @@ class Database:
             except ValueError:
                 continue
             activity = match.group("activity").strip()
+            activity = re.sub(r"^\\(## \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})$", r"\1", activity, flags=re.MULTILINE)
             if activity:
                 logs.append(ActivityLog(entered_at=entered_at, activity=activity))
         return logs
@@ -55,13 +63,16 @@ class Database:
 
         entered_at = datetime.now()
         path = self._day_path(entered_at.date())
+        activity = re.sub(
+            r"^(## \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})$",
+            r"\\\1",
+            activity,
+            flags=re.MULTILINE,
+        )
         self.logs_dir.mkdir(parents=True, exist_ok=True)
-        if not path.exists():
-            path.write_text(
-                f"# YeahBouy — {entered_at:%Y-%m-%d}\n\n",
-                encoding="utf-8",
-            )
         with path.open("a", encoding="utf-8") as file:
+            if file.tell() == 0:
+                file.write(f"# YeahBouy — {entered_at:%Y-%m-%d}\n\n")
             file.write(
                 f"## {entered_at:%Y-%m-%d %H:%M:%S}\n"
                 f"{activity}\n\n"
