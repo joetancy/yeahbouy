@@ -1,7 +1,8 @@
 # YeahBouy
 
-YeahBouy is a lightweight macOS menu-bar activity logger. Click its menu-bar
-icon, record what you are working on, and keep a simple, portable daily log.
+YeahBouy is a lightweight desktop tray activity logger for macOS, Windows, and
+Linux. Launch it to open the activity panel, or click its tray icon later. Keep
+a simple, portable daily log.
 
 ## What it does
 
@@ -73,9 +74,10 @@ option replaces the prior generated app bundle.
 ## GitHub Actions builds and releases
 
 The **Package app** workflow runs tests and builds downloadable ZIP artifacts
-for macOS, Windows, and Linux. Run it manually from the Actions tab, or push a
-date tag (`YYYY-MM-DD`) to build all three and publish a GitHub Release using
-`CHANGELOG.md` as its notes, with the platform ZIPs attached:
+for Apple Silicon macOS, Intel macOS, Windows, and Linux. Run it manually from
+the Actions tab, or push a date tag (`YYYY-MM-DD`) to build all four and publish
+a GitHub Release using `CHANGELOG.md` as its notes, with the platform ZIPs
+attached. Choose the macOS build matching your Mac's chip in **About This Mac**.
 
 ```bash
 git tag "$(date +%F)"

@@ -15,7 +15,12 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            artifact: YeahBouy-macos
+            artifact: YeahBouy-macos-apple-silicon
+            add-data: assets/checkpoint-menubar.svg:assets
+            icon: --icon assets/checkpoint.icns
+            signing: --codesign-identity -
+          - os: macos-15-intel
+            artifact: YeahBouy-macos-intel
             add-data: assets/checkpoint-menubar.svg:assets
             icon: --icon assets/checkpoint.icns
             signing: --codesign-identity -

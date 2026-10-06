@@ -406,6 +406,7 @@ class WorkLogApp:
         self.tray.setToolTip("YeahBouy")
         self.tray.activated.connect(self.on_tray_activated)
         self.tray.show()
+        self.show_today()
 
     def on_tray_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         # macOS can report more than one activation reason for a single
