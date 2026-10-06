@@ -18,12 +18,12 @@ jobs:
             artifact: YeahBouy-macos-apple-silicon
             add-data: assets/checkpoint-menubar.svg:assets
             icon: --icon assets/checkpoint.icns
-            signing: --codesign-identity -
+            signing: --codesign-identity - --osx-entitlements-file assets/entitlements.plist
           - os: macos-15-intel
             artifact: YeahBouy-macos-intel
             add-data: assets/checkpoint-menubar.svg:assets
             icon: --icon assets/checkpoint.icns
-            signing: --codesign-identity -
+            signing: --codesign-identity - --osx-entitlements-file assets/entitlements.plist
           - os: windows-latest
             artifact: YeahBouy-windows
             add-data: assets/checkpoint-menubar.svg;assets
