@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026-10-07
+## 2026-10-07-1
 
 - Make the activity panel and history window more compact, with smaller controls and a shorter calendar.
 - Use flat colours, consistent spacing, clearer typography, and matching dark styling across both windows.

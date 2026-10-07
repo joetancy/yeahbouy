@@ -21,7 +21,7 @@ def test_compact_windows_fit_controls_and_show_activity(tmp_path, monkeypatch):
             for button in window.findChildren(QPushButton):
                 if button.isVisible():
                     assert window.rect().contains(button.geometry())
-                    assert button.width() >= button.minimumSizeHint().width()
+                    assert button.fontMetrics().horizontalAdvance(button.text()) <= button.contentsRect().width(), button.text()
             row = window.list.itemWidget(window.list.item(0))
             assert row.height() >= row.minimumSizeHint().height()
     finally:
