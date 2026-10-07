@@ -8,12 +8,13 @@ from PySide6.QtCore import QPoint, Qt, Signal, QDate, QRectF
 from PySide6.QtGui import (
     QCursor,
     QDesktopServices,
-    QFont,
     QIcon,
     QColor,
     QPainter,
     QPainterPath,
+    QPalette,
     QRegion,
+    QTextCharFormat,
 )
 from PySide6.QtCore import QSettings, QUrl
 from PySide6.QtWidgets import (
@@ -41,64 +42,69 @@ from database import Database
 def modern_stylesheet(force_dark: bool = False) -> str:
     dark = force_dark or QApplication.palette().window().color().lightness() < 128
     if dark:
-        panel = "#26262a"
-        field = "#35353a"
-        border = "#505057"
+        panel = "#202630"
+        field = "#303640"
+        border = "#3c424a"
         text = "#f5f5f7"
-        muted = "#a1a1a6"
+        muted = "#abb6c7"
     else:
-        panel = "#fafafc"
-        field = "#f0f0f3"
-        border = "#d1d1d6"
+        panel = "#edf2f8"
+        field = "#f8fafc"
+        border = "#d3dae5"
         text = "#1d1d1f"
         muted = "#6e6e73"
 
     return (
         f"QDialog {{ background: {panel}; color: {text}; "
-        f"border: 1px solid {border}; border-radius: 18px; }}"
-        f"QLabel {{ color: {text}; }}"
+        f"border: 1px solid {border}; border-radius: 20px; }}"
+        f"QLabel {{ color: {text}; background: transparent; font-size: 13px; }}"
         f"QLineEdit {{ background: {field}; color: {text}; border: 1px solid {border}; "
-        "border-radius: 16px; padding: 13px 16px; min-height: 30px; font-size: 17px; "
+        "border-radius: 12px; padding: 10px 12px; min-height: 20px; font-size: 14px; "
         f"selection-background-color: #3478f6; }}"
-        f"QLineEdit:focus {{ border: 2px solid #1684ff; padding: 12px 15px; }}"
-        "QPushButton { background: #3478f6; color: white; border: none; "
-        "border-radius: 15px; padding: 10px 18px; min-height: 42px; "
-        "font-size: 16px; font-weight: 700; }"
-        "QPushButton:hover { background: #2563d8; }"
+        f"QLineEdit:focus {{ border: 2px solid #7eb6ff; padding: 9px 11px; }}"
+        "QPushButton { background: #3478ed; color: white; border: 1px solid #83b3ff; "
+        "border-radius: 12px; padding: 8px 12px; min-height: 20px; "
+        "font-size: 13px; font-weight: 600; }"
+        "QPushButton:hover { background: #619fff; }"
         "QPushButton:pressed { background: #1d4fae; }"
+        "QPushButton:focus { border: 2px solid #b4d5ff; padding: 7px 11px; }"
         f"QPushButton#calendarNavButton {{ background: transparent; color: #3478f6; "
-        "border: none; border-radius: 16px; padding: 0; min-width: 32px; min-height: 32px; "
-        "font-size: 28px; font-weight: 400; }"
+        "border: none; border-radius: 12px; padding: 0; min-width: 36px; min-height: 36px; "
+        "font-size: 24px; font-weight: 400; }"
         f"QPushButton#calendarNavButton:hover {{ background: {field}; }}"
         f"QPushButton#dayNavButton {{ background: transparent; color: #3478f6; "
-        f"border: 1px solid {border}; border-radius: 14px; padding: 0; min-width: 58px; min-height: 48px; "
-        "font-size: 28px; font-weight: 600; }"
+        f"border: 1px solid {border}; border-radius: 12px; padding: 0; min-width: 36px; min-height: 36px; "
+        "font-size: 24px; font-weight: 400; }"
         f"QPushButton#dayNavButton:hover {{ background: {field}; }}"
         f"QPushButton#dayNavButton:disabled {{ color: {muted}; }}"
         f"QPushButton#secondaryButton {{ background: {field}; color: {text}; "
         f"border: 1px solid {border}; }}"
         f"QPushButton#secondaryButton:hover {{ background: {border}; }}"
         f"QPushButton#utilityButton {{ background: {field}; color: {text}; border: 1px solid {border}; "
-        "border-radius: 14px; min-width: 72px; max-width: 72px; min-height: 58px; "
-        "max-height: 58px; padding: 0; font-size: 26px; }"
+        "border-radius: 12px; padding: 8px 12px; min-height: 20px; font-size: 12px; }"
         f"QPushButton#utilityButton:hover {{ background: {border}; }}"
         f"QListWidget {{ background: transparent; color: {text}; border: none; }}"
+        "QScrollBar:vertical { background: transparent; width: 6px; margin: 0; }"
+        f"QScrollBar::handle:vertical {{ background: {border}; border-radius: 3px; min-height: 24px; }}"
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }"
+        "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: transparent; }"
         "QListWidget::item { background: transparent; border: none; padding: 0; }"
-        f"QFrame#activityCard {{ background: {field}; border: 1px solid {border}; border-radius: 17px; }}"
-        "QFrame#timelineDot { background: #0785ff; border: none; border-radius: 8px; }"
+        f"QFrame#activityCard {{ background: {field}; border: 1px solid {border}; border-radius: 14px; }}"
+        "QFrame#timelineDot { background: #8abaff; border: none; border-radius: 4px; }"
         f"QFrame#timelineLine {{ background: {border}; border: none; max-width: 2px; }}"
-        f"QLabel#activityTime {{ color: #1684ff; font-size: 16px; font-weight: 700; }}"
+        f"QLabel#activityTime {{ color: {'#9cc5ff' if dark else '#2468c5'}; font-size: 12px; font-weight: 600; }}"
         f"QCalendarWidget {{ background: transparent; color: {text}; }}"
         f"QCalendarWidget QAbstractItemView {{ background: transparent; color: {text}; "
         "outline: 0; selection-background-color: transparent; }"
         f"QCalendarWidget QHeaderView::section {{ background: transparent; color: {muted}; "
         "border: none; padding: 0 0 6px 0; font-weight: 600; }"
         f"QFrame#separator {{ background: {border}; border: none; max-height: 1px; }}"
-        "QLabel#titleLabel { font-size: 23px; font-weight: 700; }"
-        "QLabel#dateHeading { font-size: 24px; font-weight: 700; }"
-        "QLabel#promptLabel { font-size: 16px; font-weight: 700; }"
-        f"QLabel#tipLabel {{ color: {muted}; font-size: 15px; }}"
-        f"QLabel#secondaryLabel {{ color: {muted}; }}"
+        f"QLabel#titleLabel {{ color: {muted}; font-size: 12px; font-weight: 600; }}"
+        "QLabel#dateHeading { font-size: 20px; font-weight: 700; }"
+        "QLabel#promptLabel { font-size: 13px; font-weight: 600; }"
+        "QLabel#sectionHeading { font-size: 14px; font-weight: 600; }"
+        f"QLabel#tipLabel {{ color: {muted}; font-size: 11px; }}"
+        f"QLabel#secondaryLabel {{ color: {muted}; font-size: 13px; }}"
     )
 
 
@@ -114,14 +120,14 @@ class ActivityRow(QWidget):
         super().__init__(parent)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setSpacing(8)
 
         timeline = QVBoxLayout()
-        timeline.setContentsMargins(0, 7, 0, 0)
+        timeline.setContentsMargins(0, 16, 0, 0)
         timeline.setSpacing(0)
         dot = QFrame()
         dot.setObjectName("timelineDot")
-        dot.setFixedSize(16, 16)
+        dot.setFixedSize(8, 8)
         line = QFrame()
         line.setObjectName("timelineLine")
         line.setFrameShape(QFrame.VLine)
@@ -133,14 +139,14 @@ class ActivityRow(QWidget):
         card = QFrame()
         card.setObjectName("activityCard")
         card_layout = QHBoxLayout(card)
-        card_layout.setContentsMargins(16, 14, 16, 14)
-        card_layout.setSpacing(18)
+        card_layout.setContentsMargins(12, 12, 12, 12)
+        card_layout.setSpacing(12)
 
         time_label = QLabel(timestamp)
         time_label.setObjectName("activityTime")
         time_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
         time_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
-        time_label.setMinimumWidth(56)
+        time_label.setMinimumWidth(46)
         card_layout.addWidget(time_label)
 
         activity_label = QLabel(activity)
@@ -150,11 +156,19 @@ class ActivityRow(QWidget):
         card_layout.addWidget(activity_label, 1)
         layout.addWidget(card, 1)
 
+    def sizeHint(self):
+        size = super().sizeHint()
+        if isinstance(self.parentWidget(), QListWidget):
+            width = self.parentWidget().contentsRect().width() - 2 * self.parentWidget().spacing()
+            size.setWidth(0)
+            size.setHeight(self.layout().heightForWidth(width))
+        return size
+
 
 class RoundedDialog(QDialog):
     """A dialog whose native window surface is clipped to rounded corners."""
 
-    corner_radius = 18.0
+    corner_radius = 20.0
 
     def _update_corner_mask(self) -> None:
         path = QPainterPath()
@@ -180,7 +194,12 @@ class IOSCalendar(QCalendarWidget):
         self.setNavigationBarVisible(False)
         self.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
         self.setHorizontalHeaderFormat(QCalendarWidget.ShortDayNames)
-        self.setFixedHeight(255)
+        self.setFixedHeight(224)
+        weekday_format = QTextCharFormat()
+        weekday_format.setForeground(QColor("#abb6c7"))
+        weekday_format.setBackground(QColor("#29313d"))
+        for weekday in (Qt.Monday, Qt.Tuesday, Qt.Wednesday, Qt.Thursday, Qt.Friday, Qt.Saturday, Qt.Sunday):
+            self.setWeekdayTextFormat(weekday, weekday_format)
         self.selectionChanged.connect(self.updateCells)
 
     def set_activity_counts(self, counts: dict[date, int]) -> None:
@@ -238,8 +257,8 @@ class TodayWindow(RoundedDialog):
         self.db = db
         self.selected_date = date.today()
         self.setWindowTitle("YeahBouy")
-        self.setMinimumSize(470, 600)
-        self.resize(520, 760)
+        self.setMinimumSize(400, 520)
+        self.resize(440, 620)
         self.setStyleSheet(modern_stylesheet(force_dark=True))
         # Qt.Popup treats the tray click that opened it as an outside click on
         # macOS, causing a first-click show/hide race. A tool window lets us
@@ -248,8 +267,8 @@ class TodayWindow(RoundedDialog):
             Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
         )
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(22, 22, 22, 18)
-        layout.setSpacing(14)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(12)
         heading = QLabel("YeahBouy")
         heading.setObjectName("titleLabel")
         layout.addWidget(heading)
@@ -291,7 +310,7 @@ class TodayWindow(RoundedDialog):
         previous_day.clicked.connect(self.show_previous_day)
         self.selected_date_label = QLabel()
         self.selected_date_label.setAlignment(Qt.AlignCenter)
-        self.selected_date_label.setFont(QFont("", 13, QFont.DemiBold))
+        self.selected_date_label.setObjectName("sectionHeading")
         self.next_day = QPushButton("›")
         self.next_day.setObjectName("dayNavButton")
         self.next_day.setAccessibleName("Next day")
@@ -308,11 +327,11 @@ class TodayWindow(RoundedDialog):
         self.list.setUniformItemSizes(False)
         self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.list.setFrameShape(QFrame.NoFrame)
-        layout.addWidget(self.list)
+        layout.addWidget(self.list, 1)
         self.empty_state = QLabel("No activities for this day yet.")
         self.empty_state.setObjectName("secondaryLabel")
         self.empty_state.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.empty_state)
+        layout.addWidget(self.empty_state, 1)
 
         separator = QFrame()
         separator.setObjectName("separator")
@@ -320,16 +339,18 @@ class TodayWindow(RoundedDialog):
         layout.addWidget(separator)
 
         actions = QHBoxLayout()
-        history = QPushButton("🕒")
+        actions.setContentsMargins(0, 0, 0, 0)
+        actions.setSpacing(8)
+        history = QPushButton("History")
         history.setObjectName("utilityButton")
         history.setAccessibleName("Activity history")
         history.setToolTip("Activity history")
         history.clicked.connect(self.history_requested.emit)
-        self.folder_button = QPushButton("📁")
+        self.folder_button = QPushButton("Folder")
         self.folder_button.setObjectName("utilityButton")
         self.folder_button.setAccessibleName("Choose Markdown folder")
         self.folder_button.clicked.connect(self.folder_requested.emit)
-        self.quit_button = QPushButton("👋")
+        self.quit_button = QPushButton("Quit")
         self.quit_button.setObjectName("utilityButton")
         self.quit_button.setAccessibleName("Quit YeahBouy")
         self.quit_button.setToolTip("Quit YeahBouy")
@@ -339,6 +360,7 @@ class TodayWindow(RoundedDialog):
         actions.addStretch(1)
         actions.addWidget(self.quit_button)
         layout.addLayout(actions)
+        layout.activate()
         self.refresh()
 
     def add_activity(self) -> None:
@@ -359,7 +381,7 @@ class TodayWindow(RoundedDialog):
         if self.selected_date > today:
             self.selected_date = today
         self.today_label.setText(
-            QDate(today.year, today.month, today.day).toString("dddd, MMMM d, yyyy")
+            QDate(today.year, today.month, today.day).toString("dddd, MMMM d")
         )
         logs = self.db.activities_for_date(self.selected_date)
         selected_qdate = QDate(
@@ -376,7 +398,8 @@ class TodayWindow(RoundedDialog):
         self.list.setVisible(bool(logs))
         for index, log in enumerate(logs):
             item = QListWidgetItem(self.list)
-            row = ActivityRow(f"{log.entered_at:%H:%M}", log.activity, index == len(logs) - 1)
+            row = ActivityRow(f"{log.entered_at:%H:%M}", log.activity, index == len(logs) - 1, self.list)
+            row.ensurePolished()
             item.setSizeHint(row.sizeHint())
             self.list.setItemWidget(item, row)
 
@@ -395,11 +418,21 @@ class HistoryWindow(QDialog):
         super().__init__(parent)
         self.db = db
         self.setWindowTitle("YeahBouy history")
-        self.resize(760, 560)
-        self.setStyleSheet(modern_stylesheet())
+        self.resize(520, 620)
+        self.setStyleSheet(modern_stylesheet(force_dark=True))
+        palette = self.palette()
+        palette.setColor(QPalette.Window, QColor("#202630"))
+        palette.setColor(QPalette.WindowText, QColor("#f5f5f7"))
+        palette.setColor(QPalette.Base, QColor("#202630"))
+        palette.setColor(QPalette.Text, QColor("#f5f5f7"))
+        self.setPalette(palette)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(18, 18, 18, 16)
+        layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(12)
+
+        heading = QLabel("Activity history")
+        heading.setObjectName("dateHeading")
+        layout.addWidget(heading)
 
         calendar_header = QHBoxLayout()
         calendar_header.setContentsMargins(0, 0, 0, 0)
@@ -409,7 +442,7 @@ class HistoryWindow(QDialog):
         previous_month.clicked.connect(lambda: self.calendar.showPreviousMonth())
         self.month_label = QLabel()
         self.month_label.setAlignment(Qt.AlignCenter)
-        self.month_label.setFont(QFont("", 15, QFont.DemiBold))
+        self.month_label.setObjectName("sectionHeading")
         next_month = QPushButton("›")
         next_month.setObjectName("calendarNavButton")
         next_month.clicked.connect(lambda: self.calendar.showNextMonth())
@@ -424,22 +457,25 @@ class HistoryWindow(QDialog):
         layout.addWidget(self.calendar)
 
         self.day_label = QLabel()
-        self.day_label.setFont(QFont("", 13, QFont.Bold))
+        self.day_label.setObjectName("sectionHeading")
         layout.addWidget(self.day_label)
 
         self.list = QListWidget()
+        self.list.setSpacing(8)
         self.list.setWordWrap(True)
         self.list.setUniformItemSizes(False)
         self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        layout.addWidget(self.list)
+        layout.addWidget(self.list, 1)
         self.empty_state = QLabel("No activities recorded for this day.")
         self.empty_state.setObjectName("secondaryLabel")
         self.empty_state.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.empty_state)
+        layout.addWidget(self.empty_state, 1)
 
         open_markdown = QPushButton("Open selected day’s Markdown")
+        open_markdown.setObjectName("secondaryButton")
         open_markdown.clicked.connect(self.open_markdown)
         layout.addWidget(open_markdown)
+        layout.activate()
         self.refresh()
 
     def refresh(self) -> None:
@@ -462,7 +498,8 @@ class HistoryWindow(QDialog):
         self.list.setVisible(bool(logs))
         for index, log in enumerate(logs):
             item = QListWidgetItem(self.list)
-            row = ActivityRow(f"{log.entered_at:%H:%M}", log.activity, index == len(logs) - 1)
+            row = ActivityRow(f"{log.entered_at:%H:%M}", log.activity, index == len(logs) - 1, self.list)
+            row.ensurePolished()
             item.setSizeHint(row.sizeHint())
             self.list.setItemWidget(item, row)
 
@@ -518,7 +555,6 @@ class WorkLogApp:
 
     def show_today(self) -> None:
         self.today.refresh()
-        self.today.adjustSize()
         tray_rect = self.tray.geometry()
         if tray_rect.isValid() and not tray_rect.isEmpty():
             position = QPoint(
