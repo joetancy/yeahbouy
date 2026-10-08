@@ -76,6 +76,9 @@ python -m pytest
 - `assets/yeahbouy.icns` is generated from it with `sips` + `iconutil` and
   used as the macOS app icon.
 - `assets/yeahbouy-menubar.svg` is the monochrome menu-bar tray icon.
+- `assets/icons/` holds the UI glyphs in Icons8 liquid-glass style
+  (search, chart, categories, history, folder, quit, navigation).
+  Free use requires a link credit: icons by [Icons8](https://icons8.com/icons/liquid-glass).
 - Export the PNG with transparency; a preview checkerboard baked into the
   pixels renders as a visible box in the Dock and the app.
 
@@ -85,7 +88,7 @@ With the virtual environment activated:
 
 ```bash
 pip install pyinstaller
-pyinstaller --noconfirm --windowed --name YeahBouy --icon assets/yeahbouy.icns --codesign-identity - --osx-entitlements-file assets/entitlements.plist --add-data 'assets/yeahbouy-menubar.svg:assets' --add-data 'assets/yeahbouy-mark.png:assets' main.py
+pyinstaller --noconfirm --windowed --name YeahBouy --icon assets/yeahbouy.icns --codesign-identity - --osx-entitlements-file assets/entitlements.plist --add-data 'assets/yeahbouy-menubar.svg:assets' --add-data 'assets/icons:assets/icons' --add-data 'assets/yeahbouy-mark.png:assets' main.py
 ```
 
 The rebuilt application is placed at `dist/YeahBouy.app`. The `--noconfirm`

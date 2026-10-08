@@ -17,20 +17,24 @@ jobs:
           - os: macos-latest
             artifact: YeahBouy-macos-apple-silicon
             add-data: assets/yeahbouy-menubar.svg:assets
+            icon-data: assets/icons:assets/icons
             icon: --icon assets/yeahbouy.icns
             signing: --codesign-identity - --osx-entitlements-file assets/entitlements.plist
           - os: macos-15-intel
             artifact: YeahBouy-macos-intel
             add-data: assets/yeahbouy-menubar.svg:assets
+            icon-data: assets/icons:assets/icons
             icon: --icon assets/yeahbouy.icns
             signing: --codesign-identity - --osx-entitlements-file assets/entitlements.plist
           - os: windows-latest
             artifact: YeahBouy-windows
             add-data: assets/yeahbouy-menubar.svg;assets
+            icon-data: assets/icons;assets/icons
             icon: ""
           - os: ubuntu-latest
             artifact: YeahBouy-linux
             add-data: assets/yeahbouy-menubar.svg:assets
+            icon-data: assets/icons:assets/icons
             icon: ""
 
     runs-on: ${{ matrix.os }}
@@ -63,6 +67,7 @@ jobs:
           ${{ matrix.icon }}
           ${{ matrix.signing }}
           --add-data "${{ matrix.add-data }}"
+          --add-data "${{ matrix.icon-data }}"
           --add-data "assets/yeahbouy-mark.png:assets"
           main.py
 

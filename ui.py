@@ -4,7 +4,7 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-from PySide6.QtCore import QByteArray, QPoint, Qt, Signal, QDate, QRectF, QSettings, QSize, QUrl
+from PySide6.QtCore import QPoint, Qt, Signal, QDate, QRectF, QSettings, QSize, QUrl
 from PySide6.QtGui import (
     QCursor,
     QDesktopServices,
@@ -19,7 +19,6 @@ from PySide6.QtGui import (
     QShortcut,
     QTextCharFormat,
 )
-from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -121,7 +120,7 @@ def modern_stylesheet(force_dark: bool = False) -> str:
         "border-radius: 12px; padding: 10px; font-size: 13px; min-height: 20px; }"
         f"QPushButton#categoryButton {{ background: {field}; color: {text}; border: 1px solid {border}; "
         "font-size: 12px; padding: 8px; font-weight: 400; }"
-        "QDialog#todayWindow QPushButton#categoryButton { font-size: 11px; padding: 6px; }"
+        "QDialog#todayWindow QPushButton#categoryButton { font-size: 10px; padding: 6px 4px; }"
         "QPushButton#categoryButton:checked { background: #193d65; border-color: #258cff; color: #8bbfff; }"
         "QPushButton#iconButton { background: #202c3a; border: 1px solid #344252; padding: 8px; }"
         "QPushButton#iconButton:hover { background: #304154; }"
@@ -142,15 +141,15 @@ def asset_path(name: str) -> str:
     return f"{root}/assets/{name}"
 
 
-ICON_PATHS = {
-    "search": '<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/>',
-    "chart": '<path d="M5 20v-7m7 7V4m7 16V9"/>',
-    "Development": '<rect x="4" y="3" width="16" height="13" rx="1"/><path d="m4 16-2 4h20l-2-4"/>',
-    "Paperwork": '<path d="M5 2h9l5 5v15H5Z M14 2v6h5 M8 12h8 M8 16h8"/>',
-    "Research": '<path d="M9 18h6m-6 3h6M8 14a7 7 0 1 1 8 0l-1 3H9Z"/>',
-    "history": '<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 3"/>',
-    "folder": '<path d="M2 5h8l2 3h10v13H2Z"/>',
-    "quit": '<path d="M10 3H3v18h7m4-15 6 6-6 6m-7-6h13"/>',
+ICON_FILES = {
+    "search": "search",
+    "chart": "combo-chart",
+    "Development": "code",
+    "Paperwork": "documents",
+    "Research": "microscope",
+    "history": "time-machine",
+    "folder": "folder-invoices",
+    "quit": "exit",
 }
 CATEGORY_COLORS = {
     "Development": ("#193859", "#83b9ff"),
@@ -164,15 +163,8 @@ CATEGORY_COLORS = {
 
 
 def line_icon(name: str, color: str = "#cbd5e7") -> QIcon:
-    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '
-           f'fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" '
-           f'stroke-linejoin="round">{ICON_PATHS[name]}</svg>')
-    pixmap = QPixmap(48, 48)
-    pixmap.fill(Qt.transparent)
-    painter = QPainter(pixmap)
-    QSvgRenderer(QByteArray(svg.encode())).render(painter)
-    painter.end()
-    return QIcon(pixmap)
+    """Liquid-glass PNG icon from assets/icons (color is ignored)."""
+    return QIcon(asset_path(f"icons/{ICON_FILES.get(name, name)}.png"))
 
 
 def activity_content(activity: str) -> tuple[str, list[str]]:
@@ -237,8 +229,10 @@ class ActivityRow(QWidget):
                 badges.addStretch()
                 content.addLayout(badges)
         card_layout.addLayout(content, 1)
-        more = QPushButton("⋮")
+        more = QPushButton()
         more.setObjectName("rowMenuButton")
+        more.setIcon(line_icon("ellipsis"))
+        more.setIconSize(QSize(16, 16))
         more.setAccessibleName("Activity actions")
         more.setFixedWidth(24)
         menu = QMenu(more)
@@ -445,6 +439,7 @@ class TodayWindow(RoundedDialog):
             button.setObjectName("categoryButton")
             button.setCheckable(True)
             button.setIcon(line_icon(category))
+            button.setIconSize(QSize(14, 14))
             button.setToolTip(f"Tag as {category}")
             self.category_buttons[category] = button
             capture_actions.addWidget(button)
@@ -458,14 +453,18 @@ class TodayWindow(RoundedDialog):
 
         day_navigation = QHBoxLayout()
         day_navigation.setContentsMargins(0, 0, 0, 0)
-        previous_day = QPushButton("‹")
+        previous_day = QPushButton()
         previous_day.setObjectName("dayNavButton")
+        previous_day.setIcon(line_icon("chevron-left"))
+        previous_day.setIconSize(QSize(16, 16))
         previous_day.setAccessibleName("Previous day")
         previous_day.setToolTip("Previous day")
         previous_day.clicked.connect(self.show_previous_day)
         day_navigation.addWidget(previous_day)
-        self.next_day = QPushButton("›")
+        self.next_day = QPushButton()
         self.next_day.setObjectName("dayNavButton")
+        self.next_day.setIcon(line_icon("chevron-right"))
+        self.next_day.setIconSize(QSize(16, 16))
         self.next_day.setAccessibleName("Next day")
         self.next_day.setToolTip("Next day")
         self.next_day.clicked.connect(self.show_next_day)
@@ -481,8 +480,10 @@ class TodayWindow(RoundedDialog):
         self.activity_count.setAlignment(Qt.AlignCenter)
         selected_day.addWidget(self.activity_count)
         day_navigation.addLayout(selected_day, 1)
-        view = QPushButton("Day view  ⌄")
+        view = QPushButton("Day view")
         view.setObjectName("secondaryButton")
+        view.setIcon(line_icon("chevron-down"))
+        view.setIconSize(QSize(14, 14))
         view_menu = QMenu(view)
         view_menu.addAction("Go to today", self.show_current_day)
         view_menu.addAction("Calendar history", self.history_requested.emit)

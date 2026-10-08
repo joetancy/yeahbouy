@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-08-1
+
+- Replace all UI glyphs with Icons8 liquid-glass icons, including navigation arrows and menus.
+- Slim category chips so labels fit on Windows fonts.
+
 ## 2026-10-08
 
 - Redesign the activity panel with a compact dark layout, category chips, day search, and a monthly summary.
