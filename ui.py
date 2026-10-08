@@ -4,7 +4,7 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-from PySide6.QtCore import QPoint, Qt, Signal, QDate, QRectF
+from PySide6.QtCore import QByteArray, QPoint, Qt, Signal, QDate, QRectF, QSettings, QSize, QUrl
 from PySide6.QtGui import (
     QCursor,
     QDesktopServices,
@@ -13,10 +13,13 @@ from PySide6.QtGui import (
     QPainter,
     QPainterPath,
     QPalette,
+    QPixmap,
     QRegion,
+    QKeySequence,
+    QShortcut,
     QTextCharFormat,
 )
-from PySide6.QtCore import QSettings, QUrl
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -29,6 +32,7 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QMessageBox,
+    QMenu,
     QPushButton,
     QSizePolicy,
     QSystemTrayIcon,
@@ -42,11 +46,11 @@ from database import Database
 def modern_stylesheet(force_dark: bool = False) -> str:
     dark = force_dark or QApplication.palette().window().color().lightness() < 128
     if dark:
-        panel = "#202630"
-        field = "#303640"
-        border = "#3c424a"
-        text = "#f5f5f7"
-        muted = "#abb6c7"
+        panel = "#111b26"
+        field = "#202c3a"
+        border = "#344252"
+        text = "#f5f7fc"
+        muted = "#a7b4ca"
     else:
         panel = "#edf2f8"
         field = "#f8fafc"
@@ -62,7 +66,7 @@ def modern_stylesheet(force_dark: bool = False) -> str:
         "border-radius: 12px; padding: 10px 12px; min-height: 20px; font-size: 14px; "
         f"selection-background-color: #3478f6; }}"
         f"QLineEdit:focus {{ border: 2px solid #7eb6ff; padding: 9px 11px; }}"
-        "QPushButton { background: #3478ed; color: white; border: 1px solid #83b3ff; "
+        "QPushButton { background: #087cff; color: white; border: 1px solid #258cff; "
         "border-radius: 12px; padding: 8px 12px; min-height: 20px; "
         "font-size: 13px; font-weight: 600; }"
         "QPushButton:hover { background: #619fff; }"
@@ -90,9 +94,9 @@ def modern_stylesheet(force_dark: bool = False) -> str:
         "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: transparent; }"
         "QListWidget::item { background: transparent; border: none; padding: 0; }"
         f"QFrame#activityCard {{ background: {field}; border: 1px solid {border}; border-radius: 14px; }}"
-        "QFrame#timelineDot { background: #8abaff; border: none; border-radius: 4px; }"
-        f"QFrame#timelineLine {{ background: {border}; border: none; max-width: 2px; }}"
-        f"QLabel#activityTime {{ color: {'#9cc5ff' if dark else '#2468c5'}; font-size: 12px; font-weight: 600; }}"
+        f"QLabel#activityTime {{ color: {text}; font-size: 12px; font-weight: 400; }}"
+        "QLabel#activityText { font-size: 12px; font-weight: 400; }"
+        f"QFrame#timeDivider {{ background: {border}; border: none; max-width: 1px; }}"
         f"QCalendarWidget {{ background: transparent; color: {text}; }}"
         f"QCalendarWidget QAbstractItemView {{ background: transparent; color: {text}; "
         "outline: 0; selection-background-color: transparent; }"
@@ -105,6 +109,31 @@ def modern_stylesheet(force_dark: bool = False) -> str:
         "QLabel#sectionHeading { font-size: 14px; font-weight: 600; }"
         f"QLabel#tipLabel {{ color: {muted}; font-size: 11px; }}"
         f"QLabel#secondaryLabel {{ color: {muted}; font-size: 13px; }}"
+        f"QMenu {{ background: {field}; color: {text}; border: 1px solid {border}; padding: 6px; }}"
+        "QMenu::item { padding: 8px 16px; } QMenu::item:selected { background: #285887; }"
+        "QDialog#todayWindow QLabel#titleLabel { color: #f5f7fc; font-size: 16px; font-weight: 500; }"
+        "QDialog#todayWindow QLabel#dateHeading { font-size: 18px; font-weight: 500; }"
+        f"QDialog#todayWindow QLabel#promptLabel {{ color: {muted}; font-size: 13px; font-weight: 400; }}"
+        "QDialog#todayWindow QLabel#sectionHeading { font-size: 12px; font-weight: 400; }"
+        "QDialog#todayWindow QLabel#secondaryLabel { font-size: 12px; }"
+        "QDialog#todayWindow QPushButton { font-size: 12px; font-weight: 400; }"
+        "QDialog#todayWindow QLineEdit#activityInput { border: 2px solid #258cff; "
+        "border-radius: 12px; padding: 10px; font-size: 13px; min-height: 20px; }"
+        f"QPushButton#categoryButton {{ background: {field}; color: {text}; border: 1px solid {border}; "
+        "font-size: 12px; padding: 8px; font-weight: 400; }"
+        "QDialog#todayWindow QPushButton#categoryButton { font-size: 11px; padding: 6px; }"
+        "QPushButton#categoryButton:checked { background: #193d65; border-color: #258cff; color: #8bbfff; }"
+        "QPushButton#iconButton { background: #202c3a; border: 1px solid #344252; padding: 8px; }"
+        "QPushButton#iconButton:hover { background: #304154; }"
+        "QPushButton#rowMenuButton { background: transparent; border: none; padding: 0; }"
+        "QPushButton#quitButton { background: #38232c; color: #ff686b; border: 1px solid #70333e; }"
+        "QPushButton#quitButton:hover { background: #542b36; }"
+        "QLabel#shortcutLabel { color: #a7b4ca; font-size: 12px; padding-right: 12px; }"
+        "QDialog#todayWindow { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, "
+        "stop:0 #111922, stop:0.5 #15202c, stop:1 #111b26); }"
+        "QFrame#activityCard { background: qlineargradient(x1:0, y1:0, x2:1, y2:1, "
+        "stop:0 #202d3b, stop:1 #1c2734); }"
+        "QPushButton::menu-indicator { image: none; width: 0; }"
     )
 
 
@@ -113,47 +142,109 @@ def asset_path(name: str) -> str:
     return f"{root}/assets/{name}"
 
 
-class ActivityRow(QWidget):
-    """A selectable activity card with a timeline marker."""
+ICON_PATHS = {
+    "search": '<circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/>',
+    "chart": '<path d="M5 20v-7m7 7V4m7 16V9"/>',
+    "Development": '<rect x="4" y="3" width="16" height="13" rx="1"/><path d="m4 16-2 4h20l-2-4"/>',
+    "Paperwork": '<path d="M5 2h9l5 5v15H5Z M14 2v6h5 M8 12h8 M8 16h8"/>',
+    "Research": '<path d="M9 18h6m-6 3h6M8 14a7 7 0 1 1 8 0l-1 3H9Z"/>',
+    "history": '<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 3"/>',
+    "folder": '<path d="M2 5h8l2 3h10v13H2Z"/>',
+    "quit": '<path d="M10 3H3v18h7m4-15 6 6-6 6m-7-6h13"/>',
+}
+CATEGORY_COLORS = {
+    "Development": ("#193859", "#83b9ff"),
+    "Research": ("#3c3525", "#e7cc87"),
+    "Paperwork": ("#322d51", "#c0a6ff"),
+    # Keep badges on entries saved with the previous category choices.
+    "Review": ("#303449", "#bec8ef"),
+    "Fix": ("#183e35", "#88ebc1"),
+    "Finance": ("#322d51", "#c0a6ff"),
+}
 
-    def __init__(self, timestamp: str, activity: str, last: bool = False, parent=None) -> None:
+
+def line_icon(name: str, color: str = "#cbd5e7") -> QIcon:
+    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '
+           f'fill="none" stroke="{color}" stroke-width="1.8" stroke-linecap="round" '
+           f'stroke-linejoin="round">{ICON_PATHS[name]}</svg>')
+    pixmap = QPixmap(48, 48)
+    pixmap.fill(Qt.transparent)
+    painter = QPainter(pixmap)
+    QSvgRenderer(QByteArray(svg.encode())).render(painter)
+    painter.end()
+    return QIcon(pixmap)
+
+
+def activity_content(activity: str) -> tuple[str, list[str]]:
+    """Recognize an optional final line of our Markdown category hashtags."""
+    text, separator, tags = activity.rpartition("\n")
+    categories = tags.split()
+    if separator and categories and all(
+        tag.startswith("#") and tag[1:] in CATEGORY_COLORS for tag in categories
+    ):
+        return text, [tag[1:] for tag in categories]
+    return activity, []
+
+
+class ActivityRow(QWidget):
+    """A daily activity card shared by the capture and history windows."""
+
+    def __init__(self, timestamp: str, activity: str, parent=None) -> None:
         super().__init__(parent)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
-
-        timeline = QVBoxLayout()
-        timeline.setContentsMargins(0, 16, 0, 0)
-        timeline.setSpacing(0)
-        dot = QFrame()
-        dot.setObjectName("timelineDot")
-        dot.setFixedSize(8, 8)
-        line = QFrame()
-        line.setObjectName("timelineLine")
-        line.setFrameShape(QFrame.VLine)
-        line.setVisible(not last)
-        timeline.addWidget(dot, 0, Qt.AlignHCenter)
-        timeline.addWidget(line, 1, Qt.AlignHCenter)
-        layout.addLayout(timeline)
+        layout.setSpacing(0)
 
         card = QFrame()
         card.setObjectName("activityCard")
         card_layout = QHBoxLayout(card)
-        card_layout.setContentsMargins(12, 12, 12, 12)
+        card_layout.setContentsMargins(12, 12, 10, 12)
         card_layout.setSpacing(12)
 
         time_label = QLabel(timestamp)
         time_label.setObjectName("activityTime")
-        time_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+        time_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         time_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
-        time_label.setMinimumWidth(46)
+        time_label.setMinimumWidth(52)
         card_layout.addWidget(time_label)
+        divider = QFrame()
+        divider.setObjectName("timeDivider")
+        divider.setFixedWidth(1)
+        card_layout.addWidget(divider)
 
-        activity_label = QLabel(activity)
+        content = QVBoxLayout()
+        content.setSpacing(8)
+        text, categories = activity_content(activity)
+        activity_label = QLabel(text)
+        activity_label.setTextFormat(Qt.PlainText)
+        activity_label.setObjectName("activityText")
         activity_label.setWordWrap(True)
         activity_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         activity_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        card_layout.addWidget(activity_label, 1)
+        content.addWidget(activity_label)
+        if categories:
+            for start in range(0, len(categories), 2):
+                badges = QHBoxLayout()
+                badges.setSpacing(8)
+                for category in categories[start:start + 2]:
+                    background, foreground = CATEGORY_COLORS[category]
+                    badge = QLabel(category)
+                    badge.setStyleSheet(
+                        f"background: {background}; color: {foreground}; border-radius: 9px; "
+                        "padding: 6px 8px; font-size: 11px; font-weight: 400;"
+                    )
+                    badges.addWidget(badge)
+                badges.addStretch()
+                content.addLayout(badges)
+        card_layout.addLayout(content, 1)
+        more = QPushButton("⋮")
+        more.setObjectName("rowMenuButton")
+        more.setAccessibleName("Activity actions")
+        more.setFixedWidth(24)
+        menu = QMenu(more)
+        menu.addAction("Copy activity", lambda: QApplication.clipboard().setText(activity))
+        more.setMenu(menu)
+        card_layout.addWidget(more, 0, Qt.AlignTop)
         layout.addWidget(card, 1)
 
     def sizeHint(self):
@@ -163,6 +254,16 @@ class ActivityRow(QWidget):
             size.setWidth(0)
             size.setHeight(self.layout().heightForWidth(width))
         return size
+
+
+def populate_activities(widget: QListWidget, logs) -> None:
+    widget.clear()
+    for log in logs:
+        item = QListWidgetItem(widget)
+        row = ActivityRow(f"{log.entered_at:%H:%M}", log.activity, widget)
+        row.ensurePolished()
+        item.setSizeHint(row.sizeHint())
+        widget.setItemWidget(item, row)
 
 
 class RoundedDialog(QDialog):
@@ -246,7 +347,7 @@ class IOSCalendar(QCalendarWidget):
 
 
 class TodayWindow(RoundedDialog):
-    """Activity capture panel with a timeline-style daily log."""
+    """Activity capture panel with category chips and a daily log."""
 
     history_requested = Signal()
     folder_requested = Signal()
@@ -257,8 +358,9 @@ class TodayWindow(RoundedDialog):
         self.db = db
         self.selected_date = date.today()
         self.setWindowTitle("YeahBouy")
-        self.setMinimumSize(400, 520)
-        self.resize(440, 620)
+        self.setObjectName("todayWindow")
+        self.setMinimumSize(400, 540)
+        self.resize(420, 620)
         self.setStyleSheet(modern_stylesheet(force_dark=True))
         # Qt.Popup treats the tray click that opened it as an outside click on
         # macOS, causing a first-click show/hide race. A tool window lets us
@@ -267,11 +369,40 @@ class TodayWindow(RoundedDialog):
             Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
         )
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(12)
+        layout.setContentsMargins(20, 16, 20, 16)
+        layout.setSpacing(14)
+        header = QHBoxLayout()
+        header.setSpacing(14)
+        mark = QLabel()
+        mark.setPixmap(
+            QPixmap(asset_path("yeahbouy-mark.png")).scaled(
+                32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation
+            )
+        )
+        mark.setAlignment(Qt.AlignCenter)
+        mark.setFixedSize(32, 32)
+        header.addWidget(mark)
         heading = QLabel("YeahBouy")
         heading.setObjectName("titleLabel")
-        layout.addWidget(heading)
+        header.addWidget(heading, 1)
+        for icon, label, callback in (
+            ("search", "Search this day", self.toggle_search),
+            ("chart", "Monthly activity summary", self.show_summary),
+        ):
+            button = QPushButton()
+            button.setIcon(line_icon(icon))
+            button.setIconSize(QSize(18, 18))
+            button.setObjectName("iconButton")
+            button.setFixedSize(36, 36)
+            button.setAccessibleName(label)
+            button.setToolTip(label)
+            button.clicked.connect(callback)
+            header.addWidget(button)
+        layout.addLayout(header)
+        separator = QFrame()
+        separator.setObjectName("separator")
+        separator.setFixedHeight(1)
+        layout.addWidget(separator)
 
         self.today_label = QLabel()
         self.today_label.setObjectName("dateHeading")
@@ -282,18 +413,42 @@ class TodayWindow(RoundedDialog):
         layout.addWidget(prompt)
 
         self.activity = QLineEdit()
+        self.activity.setObjectName("activityInput")
+        self.activity.setAccessibleName("Activity description")
         self.activity.setPlaceholderText("Add activity...")
         self.activity.returnPressed.connect(self.add_activity)
-        layout.addWidget(self.activity)
+        shortcut = QShortcut(QKeySequence("Ctrl+Return"), self)
+        shortcut.activated.connect(self.add_activity)
+        input_layout = QHBoxLayout(self.activity)
+        input_layout.setContentsMargins(0, 0, 0, 0)
+        input_layout.addStretch()
+        hint = QLabel("⌘ + ↵" if sys.platform == "darwin" else "Ctrl + ↵")
+        hint.setObjectName("shortcutLabel")
+        hint.setAttribute(Qt.WA_TransparentForMouseEvents)
+        input_layout.addWidget(hint)
+        self.activity.setTextMargins(0, 0, hint.sizeHint().width() + 12, 0)
+        capture_input = QHBoxLayout()
+        capture_input.setSpacing(8)
+        capture_input.addWidget(self.activity, 1)
+        add_button = QPushButton("Log activity  →")
+        add_button.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        add_button.clicked.connect(self.add_activity)
+        capture_input.addWidget(add_button)
+        layout.addLayout(capture_input)
 
         capture_actions = QHBoxLayout()
         capture_actions.setContentsMargins(0, 0, 0, 0)
-        tip = QLabel("Tip: Press Enter to log activity")
-        tip.setObjectName("tipLabel")
-        capture_actions.addWidget(tip, 1)
-        add_button = QPushButton("Log activity")
-        add_button.clicked.connect(self.add_activity)
-        capture_actions.addWidget(add_button)
+        capture_actions.setSpacing(8)
+        self.category_buttons = {}
+        for category in ("Development", "Research", "Paperwork"):
+            button = QPushButton(category)
+            button.setObjectName("categoryButton")
+            button.setCheckable(True)
+            button.setIcon(line_icon(category))
+            button.setToolTip(f"Tag as {category}")
+            self.category_buttons[category] = button
+            capture_actions.addWidget(button)
+        capture_actions.addStretch()
         layout.addLayout(capture_actions)
 
         separator = QFrame()
@@ -308,21 +463,41 @@ class TodayWindow(RoundedDialog):
         previous_day.setAccessibleName("Previous day")
         previous_day.setToolTip("Previous day")
         previous_day.clicked.connect(self.show_previous_day)
-        self.selected_date_label = QLabel()
-        self.selected_date_label.setAlignment(Qt.AlignCenter)
-        self.selected_date_label.setObjectName("sectionHeading")
+        day_navigation.addWidget(previous_day)
         self.next_day = QPushButton("›")
         self.next_day.setObjectName("dayNavButton")
         self.next_day.setAccessibleName("Next day")
         self.next_day.setToolTip("Next day")
         self.next_day.clicked.connect(self.show_next_day)
-        day_navigation.addWidget(previous_day)
-        day_navigation.addWidget(self.selected_date_label, 1)
         day_navigation.addWidget(self.next_day)
+        selected_day = QVBoxLayout()
+        selected_day.setSpacing(4)
+        self.selected_date_label = QLabel()
+        self.selected_date_label.setAlignment(Qt.AlignCenter)
+        self.selected_date_label.setObjectName("sectionHeading")
+        selected_day.addWidget(self.selected_date_label)
+        self.activity_count = QLabel()
+        self.activity_count.setObjectName("secondaryLabel")
+        self.activity_count.setAlignment(Qt.AlignCenter)
+        selected_day.addWidget(self.activity_count)
+        day_navigation.addLayout(selected_day, 1)
+        view = QPushButton("Day view  ⌄")
+        view.setObjectName("secondaryButton")
+        view_menu = QMenu(view)
+        view_menu.addAction("Go to today", self.show_current_day)
+        view_menu.addAction("Calendar history", self.history_requested.emit)
+        view.setMenu(view_menu)
+        day_navigation.addWidget(view)
         layout.addLayout(day_navigation)
+        self.search = QLineEdit()
+        self.search.setPlaceholderText("Search this day...")
+        self.search.setAccessibleName("Search this day's activities")
+        self.search.textChanged.connect(self.refresh)
+        self.search.hide()
+        layout.addWidget(self.search)
 
         self.list = QListWidget()
-        self.list.setSpacing(8)
+        self.list.setSpacing(7)
         self.list.setWordWrap(True)
         self.list.setUniformItemSizes(False)
         self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -343,15 +518,18 @@ class TodayWindow(RoundedDialog):
         actions.setSpacing(8)
         history = QPushButton("History")
         history.setObjectName("utilityButton")
+        history.setIcon(line_icon("history"))
         history.setAccessibleName("Activity history")
         history.setToolTip("Activity history")
         history.clicked.connect(self.history_requested.emit)
         self.folder_button = QPushButton("Folder")
         self.folder_button.setObjectName("utilityButton")
+        self.folder_button.setIcon(line_icon("folder"))
         self.folder_button.setAccessibleName("Choose Markdown folder")
         self.folder_button.clicked.connect(self.folder_requested.emit)
         self.quit_button = QPushButton("Quit")
-        self.quit_button.setObjectName("utilityButton")
+        self.quit_button.setObjectName("quitButton")
+        self.quit_button.setIcon(line_icon("quit", "#ff686b"))
         self.quit_button.setAccessibleName("Quit YeahBouy")
         self.quit_button.setToolTip("Quit YeahBouy")
         self.quit_button.clicked.connect(self.quit_requested.emit)
@@ -367,12 +545,18 @@ class TodayWindow(RoundedDialog):
         activity = self.activity.text().strip()
         if not activity:
             return
+        categories = [name for name, button in self.category_buttons.items() if button.isChecked()]
+        if categories:
+            activity += "\n" + " ".join(f"#{name}" for name in categories)
         try:
             self.db.add_activity(activity)
         except OSError as error:
             QMessageBox.critical(self, "Could not save activity", str(error))
             return
         self.activity.clear()
+        for button in self.category_buttons.values():
+            button.setChecked(False)
+        self.search.clear()
         self.selected_date = date.today()
         self.refresh()
 
@@ -388,20 +572,33 @@ class TodayWindow(RoundedDialog):
             self.selected_date.year, self.selected_date.month, self.selected_date.day
         )
         day_name = "Today" if self.selected_date == today else selected_qdate.toString("ddd, MMM d")
-        self.selected_date_label.setText(
-            f"{day_name} · {len(logs)} activit{'y' if len(logs) == 1 else 'ies'}"
-        )
+        self.selected_date_label.setText(f"▦  {day_name}")
+        self.activity_count.setText(f"{len(logs)} activit{'y' if len(logs) == 1 else 'ies'}")
         self.folder_button.setToolTip(f"Markdown folder: {self.db.logs_dir}\nClick to change")
         self.next_day.setEnabled(self.selected_date < today)
-        self.list.clear()
+        query = self.search.text().casefold().strip()
+        logs = [log for log in logs if query in log.activity.casefold()]
+        self.empty_state.setText("No matching activities." if query else "No activities for this day yet.")
         self.empty_state.setVisible(not logs)
         self.list.setVisible(bool(logs))
-        for index, log in enumerate(logs):
-            item = QListWidgetItem(self.list)
-            row = ActivityRow(f"{log.entered_at:%H:%M}", log.activity, index == len(logs) - 1, self.list)
-            row.ensurePolished()
-            item.setSizeHint(row.sizeHint())
-            self.list.setItemWidget(item, row)
+        populate_activities(self.list, logs)
+
+    def toggle_search(self) -> None:
+        self.search.setVisible(self.search.isHidden())
+        if self.search.isVisible():
+            self.search.setFocus()
+        else:
+            self.search.clear()
+            self.activity.setFocus()
+
+    def show_summary(self) -> None:
+        counts = self.db.activity_counts_for_month(self.selected_date.year, self.selected_date.month)
+        month = QDate(self.selected_date.year, self.selected_date.month, 1).toString("MMMM yyyy")
+        QMessageBox.information(self, month, f"{sum(counts.values())} activities across {len(counts)} active days.")
+
+    def show_current_day(self) -> None:
+        self.selected_date = date.today()
+        self.refresh()
 
     def show_previous_day(self) -> None:
         self.selected_date -= timedelta(days=1)
@@ -493,15 +690,9 @@ class HistoryWindow(QDialog):
             f"{QDate(selected.year, selected.month, selected.day).toString('dddd, MMMM d, yyyy')} · "
             f"{len(logs)} log{'s' if len(logs) != 1 else ''}"
         )
-        self.list.clear()
         self.empty_state.setVisible(not logs)
         self.list.setVisible(bool(logs))
-        for index, log in enumerate(logs):
-            item = QListWidgetItem(self.list)
-            row = ActivityRow(f"{log.entered_at:%H:%M}", log.activity, index == len(logs) - 1, self.list)
-            row.ensurePolished()
-            item.setSizeHint(row.sizeHint())
-            self.list.setItemWidget(item, row)
+        populate_activities(self.list, logs)
 
     def open_markdown(self) -> None:
         qdate = self.calendar.selectedDate()
@@ -525,7 +716,7 @@ class WorkLogApp:
         self.today.folder_requested.connect(self.choose_log_folder)
         self.today.quit_requested.connect(self.app.quit)
         self.history = None
-        self.tray = QSystemTrayIcon(QIcon(asset_path("checkpoint-menubar.svg")), app)
+        self.tray = QSystemTrayIcon(QIcon(asset_path("yeahbouy-menubar.svg")), app)
         self.tray.setToolTip("YeahBouy")
         self.tray.activated.connect(self.on_tray_activated)
         self.tray.show()
@@ -567,6 +758,15 @@ class WorkLogApp:
                 cursor.x() - self.today.width() // 2,
                 cursor.y() + 8,
             )
+        screen = self.app.screenAt(position) or self.app.primaryScreen()
+        if screen is not None:
+            available = screen.availableGeometry()
+            self.today.resize(
+                min(self.today.width(), available.width()),
+                min(self.today.height(), available.height()),
+            )
+            position.setX(max(available.left(), min(position.x(), available.right() - self.today.width() + 1)))
+            position.setY(max(available.top(), min(position.y(), available.bottom() - self.today.height() + 1)))
         self.today.move(position)
         self.today.show()
         self.today.raise_()

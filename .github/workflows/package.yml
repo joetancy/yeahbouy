@@ -16,21 +16,21 @@ jobs:
         include:
           - os: macos-latest
             artifact: YeahBouy-macos-apple-silicon
-            add-data: assets/checkpoint-menubar.svg:assets
-            icon: --icon assets/checkpoint.icns
+            add-data: assets/yeahbouy-menubar.svg:assets
+            icon: --icon assets/yeahbouy.icns
             signing: --codesign-identity - --osx-entitlements-file assets/entitlements.plist
           - os: macos-15-intel
             artifact: YeahBouy-macos-intel
-            add-data: assets/checkpoint-menubar.svg:assets
-            icon: --icon assets/checkpoint.icns
+            add-data: assets/yeahbouy-menubar.svg:assets
+            icon: --icon assets/yeahbouy.icns
             signing: --codesign-identity - --osx-entitlements-file assets/entitlements.plist
           - os: windows-latest
             artifact: YeahBouy-windows
-            add-data: assets/checkpoint-menubar.svg;assets
+            add-data: assets/yeahbouy-menubar.svg;assets
             icon: ""
           - os: ubuntu-latest
             artifact: YeahBouy-linux
-            add-data: assets/checkpoint-menubar.svg:assets
+            add-data: assets/yeahbouy-menubar.svg:assets
             icon: ""
 
     runs-on: ${{ matrix.os }}
@@ -63,6 +63,7 @@ jobs:
           ${{ matrix.icon }}
           ${{ matrix.signing }}
           --add-data "${{ matrix.add-data }}"
+          --add-data "assets/yeahbouy-mark.png:assets"
           main.py
 
       - name: Verify macOS app signature

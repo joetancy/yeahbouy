@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-08
+
+- Redesign the activity panel with a compact dark layout, category chips, day search, and a monthly summary.
+- Offer Development, Research, and Paperwork categories, saved as Markdown hashtags and shown as badges.
+- Rebrand artwork to YeahBouy icons with transparency, and set the runtime Dock icon.
+- Narrow the panel and lighten typography across the main window.
+
 ## 2026-10-07-1
 
 - Make the activity panel and history window more compact, with smaller controls and a shorter calendar.

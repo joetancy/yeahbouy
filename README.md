@@ -1,5 +1,7 @@
 # YeahBouy
 
+<img src="assets/yeahbouy-mark.png" width="64" alt="YeahBouy app icon">
+
 YeahBouy is a lightweight desktop tray activity logger for macOS, Windows, and
 Linux. Launch it to open the activity panel, or click its tray icon later. Keep
 a simple, portable daily log.
@@ -7,6 +9,8 @@ a simple, portable daily log.
 ## What it does
 
 - Captures an activity with a timestamp by pressing Enter or clicking **Log activity**.
+- Provides category chips, a search for the selected day, and a monthly activity summary.
+- Offers Development, Research, and Paperwork categories, saved as a final line of Markdown hashtags (for example, `#Development #Research`) and displayed as colored badges.
 - Shows today's full date and today's entries in the compact menu-bar panel.
 - Lets you use the panel's **Back** and **Forward** buttons to browse earlier daily logs without opening the calendar. Forward stops at today.
 - Provides a calendar-based History window for browsing a month at a time and opening a selected day's Markdown file.
@@ -65,13 +69,23 @@ python main.py
 python -m pytest
 ```
 
+## App icon
+
+- `assets/yeahbouy-mark.png` is the source artwork (transparent PNG) and the
+  in-app header logo.
+- `assets/yeahbouy.icns` is generated from it with `sips` + `iconutil` and
+  used as the macOS app icon.
+- `assets/yeahbouy-menubar.svg` is the monochrome menu-bar tray icon.
+- Export the PNG with transparency; a preview checkerboard baked into the
+  pixels renders as a visible box in the Dock and the app.
+
 ## Build the macOS app
 
 With the virtual environment activated:
 
 ```bash
 pip install pyinstaller
-pyinstaller --noconfirm --windowed --name YeahBouy --icon assets/checkpoint.icns --codesign-identity - --osx-entitlements-file assets/entitlements.plist --add-data 'assets/checkpoint-menubar.svg:assets' main.py
+pyinstaller --noconfirm --windowed --name YeahBouy --icon assets/yeahbouy.icns --codesign-identity - --osx-entitlements-file assets/entitlements.plist --add-data 'assets/yeahbouy-menubar.svg:assets' --add-data 'assets/yeahbouy-mark.png:assets' main.py
 ```
 
 The rebuilt application is placed at `dist/YeahBouy.app`. The `--noconfirm`
