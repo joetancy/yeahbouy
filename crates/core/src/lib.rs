@@ -358,10 +358,9 @@ fn legacy_folder() -> Result<Option<PathBuf>> {
         use winreg::{RegKey, enums::HKEY_CURRENT_USER};
         if let Ok(key) =
             RegKey::predef(HKEY_CURRENT_USER).open_subkey(r"Software\YeahBouy\YeahBouy")
+            && let Ok(folder) = key.get_value::<String, _>("logs_dir")
         {
-            if let Ok(folder) = key.get_value::<String, _>("logs_dir") {
-                return Ok(Some(folder.into()));
-            }
+            return Ok(Some(folder.into()));
         }
     }
     #[cfg(target_os = "linux")]
