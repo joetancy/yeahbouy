@@ -1,0 +1,27 @@
+[package]
+name = "yeahbouy-desktop"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "yeahbouy"
+path = "src/main.rs"
+
+[dependencies]
+yeahbouy-core = { path = "../core" }
+anyhow = "1"
+async-channel = "2"
+chrono = "0.4"
+gpui-kit = "=0.7.3"
+resvg = { version = "0.46", default-features = false }
+tray-icon = { version = "0.26.1", default-features = false, features = ["ksni"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", features = ["NSApplication", "NSWindow"] }
+objc2-foundation = "0.3"
+raw-window-handle = "0.6"
+
+[dev-dependencies]
+gpui-kit = { version = "=0.7.3", features = ["test-support"] }
+tempfile = "3"

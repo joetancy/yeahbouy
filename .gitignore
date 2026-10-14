@@ -1,11 +1,9 @@
 .venv/
 __pycache__/
 *.pyc
-worklog.db
-build/
-dist/
-*.spec
-.pyinstaller/
+.pytest_cache/
+/target/
+/dist/
 .DS_Store
 # Added by code-review-graph
 .code-review-graph/

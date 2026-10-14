@@ -2,11 +2,12 @@ name: Package app
 
 on:
   push:
-    tags: ["*-*-*"]
+    branches: [main]
+    tags: ["20??-??-??*"]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   package:
@@ -16,26 +17,12 @@ jobs:
         include:
           - os: macos-latest
             artifact: YeahBouy-macos-apple-silicon
-            add-data: assets/yeahbouy-menubar.svg:assets
-            icon-data: assets/icons:assets/icons
-            icon: --icon assets/yeahbouy.icns
-            signing: --codesign-identity - --osx-entitlements-file assets/entitlements.plist
           - os: macos-15-intel
             artifact: YeahBouy-macos-intel
-            add-data: assets/yeahbouy-menubar.svg:assets
-            icon-data: assets/icons:assets/icons
-            icon: --icon assets/yeahbouy.icns
-            signing: --codesign-identity - --osx-entitlements-file assets/entitlements.plist
           - os: windows-latest
             artifact: YeahBouy-windows
-            add-data: assets/yeahbouy-menubar.svg;assets
-            icon-data: assets/icons;assets/icons
-            icon: ""
           - os: ubuntu-latest
             artifact: YeahBouy-linux
-            add-data: assets/yeahbouy-menubar.svg:assets
-            icon-data: assets/icons:assets/icons
-            icon: ""
 
     runs-on: ${{ matrix.os }}
     defaults:
@@ -45,35 +32,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          python-version: "3.12"
+          components: rustfmt, clippy
 
-      - name: Install Linux Qt libraries
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Linux native libraries
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libegl1 libxkbcommon-x11-0 libxcb-cursor0
+          sudo apt-get install -y build-essential clang cmake pkg-config libasound2-dev libfontconfig1-dev libwayland-dev libxkbcommon-x11-dev libx11-xcb-dev libxcb-shape0-dev libxcb-xfixes0-dev libxcb-cursor-dev libvulkan-dev libglib2.0-dev
 
-      - name: Install dependencies
-        run: python -m pip install -r requirements.txt pytest pyinstaller
+      - name: Check formatting
+        run: cargo fmt --all --check
 
       - name: Run tests
-        run: python -m pytest
+        run: cargo test --workspace --locked
+
+      - name: Lint
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Build app
-        run: >-
-          pyinstaller --noconfirm --windowed --name YeahBouy
-          ${{ matrix.icon }}
-          ${{ matrix.signing }}
-          --add-data "${{ matrix.add-data }}"
-          --add-data "${{ matrix.icon-data }}"
-          --add-data "assets/yeahbouy-mark.png:assets"
-          main.py
+        run: |
+          cargo build --release --locked
+          bash scripts/package.sh
 
       - name: Verify macOS app signature
         if: runner.os == 'macOS'
-        run: codesign --verify --deep --strict --verbose=2 dist/YeahBouy.app
+        run: codesign --verify --deep --strict --verbose=2 dist/native/YeahBouy.app
 
       - name: Archive app
         env:
@@ -86,7 +73,7 @@ jobs:
           import sys
           from pathlib import Path
 
-          source = Path("dist/YeahBouy.app" if sys.platform == "darwin" else "dist/YeahBouy")
+          source = Path("dist/native/YeahBouy.app" if sys.platform == "darwin" else "dist/native/YeahBouy")
           archive = f"{os.environ['ARCHIVE_NAME']}.zip"
           if sys.platform == "darwin":
               subprocess.run(["ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", str(source), archive], check=True)
@@ -101,9 +88,11 @@ jobs:
           if-no-files-found: error
 
   release:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     needs: package
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 

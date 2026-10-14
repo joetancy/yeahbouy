@@ -2,111 +2,137 @@
 
 <img src="assets/yeahbouy-mark.png" width="64" alt="YeahBouy app icon">
 
-YeahBouy is a lightweight desktop tray activity logger for macOS, Windows, and
-Linux. Launch it to open the activity panel, or click its tray icon later. Keep
-a simple, portable daily log.
+A compact native activity logger and to-do checklist, written in **Rust +
+[GPUI Kit](https://gpui-kit.com)**. No Python, Qt, database, or backend service.
 
-## What it does
+## Features
 
-- Captures an activity with a timestamp by pressing Enter or clicking **Log activity**.
-- Provides category chips, a search for the selected day, and a monthly activity summary.
-- Offers Development, Research, and Paperwork categories, saved as a final line of Markdown hashtags (for example, `#Development #Research`) and displayed as colored badges.
-- Shows today's full date and today's entries in the compact menu-bar panel.
-- Lets you use the panel's **Back** and **Forward** buttons to browse earlier daily logs without opening the calendar. Forward stops at today.
-- Provides a calendar-based History window for browsing a month at a time and opening a selected day's Markdown file.
-- Shows activity markers on days with logs and a clear empty state when a day has no entries.
-- Lets you choose a Markdown folder from the folder button in the panel footer; the choice is remembered.
-- Stores every day as readable Markdown; no database service is required.
+- A 380×480 menu-bar panel with shadcn-style dark components.
+- Log activities with Enter or the **Add** button; optionally tag Development,
+  Research, and Paperwork.
+- Separate **Activity** and **To-do** tabs. Add tasks, check them off, reopen
+  them, and delete them. Tasks persist across days and app restarts.
+- Browse previous days and search the selected day.
+- A **History** window with a calendar, buttons for days with logs, and access
+  to the selected day's Markdown file.
+- Choose a Markdown destination using **Folder**. Existing files stay in their
+  original location; they are never automatically moved.
+- macOS menu-bar integration through `tray-icon` and a small AppKit adapter.
+  Windows and Linux use their native system tray and a compact utility window.
+  Escape hides the macOS app or minimizes the Windows/Linux panel; the tray
+  opens it again. Right-click the tray icon for Open and Quit.
 
-## Storage
+Keyboard: Enter submits the focused input, **⌘/Ctrl+Enter** submits the current
+tab, **⌘/Ctrl+F** searches the day, and **⌘/Ctrl+Q** quits. Checkboxes support
+keyboard activation through GPUI Kit.
 
-Logs live in the platform's user data directory:
+## All content is Markdown
 
-```text
-macOS:   ~/Library/Application Support/YeahBouy/logs/YYYY-MM-DD.md
-Windows: %APPDATA%/YeahBouy/logs/YYYY-MM-DD.md
-Linux:   $XDG_DATA_HOME/YeahBouy/logs/YYYY-MM-DD.md
-```
-
-When `XDG_DATA_HOME` is unset on Linux, logs use `~/.local/share/YeahBouy/logs`.
-Use the folder button at the bottom of the panel to pick another destination;
-YeahBouy remembers it for future launches.
-
-Set `YEAHBOUY_LOGS_DIR` to use a different log directory (useful for backups or
-testing). Existing Markdown files are read as-is; YeahBouy creates a daily file
-only when its first activity is recorded. Markdown heading-like lines inside an
-activity are escaped so they remain part of that entry.
-
-Choosing another folder changes where future logs are saved; existing files are
-left in their original folder and are not moved.
-
-YeahBouy creates a day's file only after its first activity is recorded. Reading
-or browsing a day never creates a new file.
-
-Each log is ordinary Markdown, for example:
+Daily activities use the same format as earlier Python versions:
 
 ```markdown
 # YeahBouy — 2026-07-21
 
 ## 2026-07-21 09:30:00
 Review release checklist
+#Development #Research
 ```
 
-## Run from source
+The persistent checklist is `todos.md` in the same folder:
 
-Requirements: Python 3.10 or newer and a desktop environment with a system tray.
+```markdown
+# YeahBouy — To-do
+
+- [ ] Plan the next release
+- [x] Review the interface
+```
+
+Rust saves an invisible `<!-- yeahbouy:id=… -->` comment after each task to keep
+its identity stable. Keep those comments when editing, and give newly added
+tasks their own lines; the app assigns IDs when saving. Unknown non-checklist
+lines cause a visible error instead of being silently discarded. Failed saves
+preserve the draft and the previous checklist.
+
+Existing daily logs and Markdown checklists are read directly. If only a legacy
+`todos.json` exists, it is migrated to Markdown; the JSON file is removed only
+after the Markdown save succeeds. Markdown changes use atomic file replacement.
+
+Default log folders:
+
+```text
+macOS:   ~/Library/Application Support/YeahBouy/logs
+Windows: %APPDATA%/YeahBouy/logs
+Linux:   $XDG_DATA_HOME/YeahBouy/logs
+```
+
+Linux falls back to `~/.local/share/YeahBouy/logs`. `YEAHBOUY_LOGS_DIR` overrides
+the destination. The existing Python app's selected folder is recognized without
+requiring Qt. New folder preferences are saved in `settings.md` in YeahBouy's
+default user-data directory.
+
+An iCloud Drive folder works as the selected destination. Synchronization is
+handled by iCloud, not a custom sync engine; the Markdown files are also
+accessible on an iPhone. Reopen the panel to reload external edits. Avoid
+simultaneous edits from multiple apps while saving.
+
+## Run
+
+Install [Rust](https://rustup.rs/) and your platform's native build tools
+(Xcode Command Line Tools on macOS, Visual Studio C++ Build Tools on Windows).
+macOS application bundles target macOS 12 or newer.
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python main.py
+cargo run --locked
 ```
 
-## Tests
+On Debian/Ubuntu, install the native dependencies before building:
 
 ```bash
-python -m pytest
+sudo apt-get install build-essential clang cmake pkg-config libasound2-dev libfontconfig1-dev libwayland-dev libxkbcommon-x11-dev libx11-xcb-dev libxcb-shape0-dev libxcb-xfixes0-dev libxcb-cursor-dev libvulkan-dev libglib2.0-dev
 ```
 
-## App icon
+Linux needs a desktop tray host supporting StatusNotifierItem and a usable GPU
+or software Vulkan adapter. GPUI Kit uses Metal on macOS and native GPU backends
+on other desktop platforms. Windows/Linux builds are covered by the packaging
+workflow; the rewrite has been locally exercised on macOS.
 
-- `assets/yeahbouy-mark.png` is the source artwork (transparent PNG) and the
-  in-app header logo.
-- `assets/yeahbouy.icns` is generated from it with `sips` + `iconutil` and
-  used as the macOS app icon.
-- `assets/yeahbouy-menubar.svg` is the monochrome menu-bar tray icon.
-- `assets/icons/` holds the UI glyphs in Icons8 liquid-glass style
-  (search, chart, categories, history, folder, quit, navigation).
-  Free use requires a link credit: icons by [Icons8](https://icons8.com/icons/liquid-glass).
-- Export the PNG with transparency; a preview checkerboard baked into the
-  pixels renders as a visible box in the Dock and the app.
+## Project structure
 
-## Build the macOS app
+```text
+crates/core/       Activities, checklist parsing, Markdown writes, preferences
+crates/desktop/    GPUI Kit views, keyboard commands, tray integration
+```
 
-With the virtual environment activated:
+`yeahbouy-core` has no GPUI dependency. A future iOS interface can reuse it;
+this project does not include an iOS app or speculative mobile scaffolding.
+
+## Checks
 
 ```bash
-pip install pyinstaller
-pyinstaller --noconfirm --windowed --name YeahBouy --icon assets/yeahbouy.icns --codesign-identity - --osx-entitlements-file assets/entitlements.plist --add-data 'assets/yeahbouy-menubar.svg:assets' --add-data 'assets/icons:assets/icons' --add-data 'assets/yeahbouy-mark.png:assets' main.py
+cargo test --workspace --locked
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
-The rebuilt application is placed at `dist/YeahBouy.app`. The `--noconfirm`
-option replaces the prior generated app bundle.
+Tests cover Markdown compatibility, safe migration and saves, stable task IDs,
+tray placement, and a headless GPUI Kit interaction flow that logs an activity,
+adds/completes/deletes a task, protects malformed data, and checks compact layout.
 
-## GitHub Actions builds and releases
-
-The **Package app** workflow runs tests and builds downloadable ZIP artifacts
-for Apple Silicon macOS, Intel macOS, Windows, and Linux. Run it manually from
-the Actions tab, or push a date tag (`YYYY-MM-DD`) to build all four and publish
-a GitHub Release using `CHANGELOG.md` as its notes, with the platform ZIPs
-attached. Add `-N` to the tag for another release on the same date. Choose the
-macOS build matching your Mac's chip in **About This Mac**.
-
-The macOS build is ad-hoc signed, not notarized. On first launch, Control-click
-`YeahBouy.app` and choose **Open** if macOS asks for confirmation.
+## Build and package
 
 ```bash
-git tag "$(date +%F)"
-git push origin "$(date +%F)"
+cargo build --release --locked
+bash scripts/package.sh
 ```
+
+macOS: `dist/native/YeahBouy.app`. Windows/Linux: `dist/native/YeahBouy/`.
+The macOS app is ad-hoc signed, not notarized; Control-click and choose **Open**
+if needed.
+
+The **Package app** workflow checks and builds Apple Silicon macOS, Intel macOS,
+Windows, and Linux on pushes to `main`. Run it manually to build without
+publishing, or push a date tag (`YYYY-MM-DD`, optionally `-N`) to publish a
+release using `CHANGELOG.md` after all four builds pass.
+
+UI icons use GPUI Kit's bundled [Lucide](https://lucide.dev) assets. App artwork
+and the menu-bar icon are in `assets/`.

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-14
+
+- Replace the Python/Qt app with a native Rust and GPUI Kit desktop application.
+- Preserve existing Markdown activity logs, migrate legacy to-dos, and add a persistent Markdown checklist.
+- Add native system-tray integration and cross-platform release packaging.
+- Refine the activity and history interfaces for clearer labels, spacing, and calendar layout.
+
 ## 2026-10-08-1
 
 - Replace all UI glyphs with Icons8 liquid-glass icons, including navigation arrows and menus.
