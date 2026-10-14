@@ -3,7 +3,7 @@ name: Package app
 on:
   push:
     branches: [main]
-    tags: ["20??-??-??*"]
+    tags: ["*-*-*"]
   workflow_dispatch:
 
 permissions:
